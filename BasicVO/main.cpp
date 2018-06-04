@@ -14,8 +14,7 @@ using namespace cv;
 
 int main()
 {
-    PinholeCamera *pcamera = new PinholeCamera(1241, 376,
-                                               718.8560, 718.8560, 607.1928, 185.2157);
+    PinholeCamera *pcamera = new PinholeCamera(1241, 376, 718.8560, 718.8560, 607.1928, 185.2157);
     VisualOdometry vo(pcamera);
 
     fstream out("position.txt");
@@ -32,7 +31,7 @@ int main()
     for (int im_id = 0; im_id < 2000; ++im_id)
     {
         stringstream ss;
-        ss << "/home/runisys/Desktop/data/slamDataset/sequences/00/image_0/" << setw(6) << setfill('0') << im_id
+        ss << "/home/ynzhang/data/KITTI/dataset/00/image_0/" << setw(6) << setfill('0') << im_id
            << ".png";
 
         Mat img = imread(ss.str().c_str(), 0);
@@ -51,6 +50,7 @@ int main()
         int draw_x = int(x) + 300;
         int draw_y = int(z) + 100;
         cv::circle(traj, cv::Point(draw_x, draw_y), 1, CV_RGB(255, 0, 0), 2);
+        std::cout << im_id << " " << draw_x << " " << draw_y << std::endl;
 
         cv::rectangle(traj, cv::Point(10, 30), cv::Point(580, 60), CV_RGB(0, 0, 0), CV_FILLED);
         sprintf(text, "Coordinates: x = %02fm y = %02fm z = %02fm", x, y, z);
