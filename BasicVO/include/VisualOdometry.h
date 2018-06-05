@@ -5,9 +5,6 @@
 #include <opencv2/core.hpp>
 #include "PinholeCamera.h"
 
-using namespace cv;
-using namespace std;
-
 // 简单视觉里程计类定义
 class VisualOdometry
 {
@@ -24,11 +21,11 @@ public:
 
     ~VisualOdometry();
 
-    void addImage(const Mat &img, int frame_id);
+    void addImage(const cv::Mat &img, int frame_id);
 
-    Mat getCurrentR() { return cur_R; }
+    cv::Mat getCurrentR() { return cur_R; }
 
-    Mat getCurrentT() { return cur_t; }
+    cv::Mat getCurrentT() { return cur_t; }
 
 private:
     bool processFirstFrame();
@@ -39,27 +36,26 @@ private:
 
     double getAbsoluteScale(int frame_id);
 
-    void featureDetection(Mat &image, vector<Point2f>& keypoints);
+    void featureDetection(cv::Mat &image, std::vector<cv::Point2f>& keypoints);
 
-    void featureTracking(Mat &image_previous, Mat &image_current, vector<Point2f> &keyPoint_previous,
-                         vector<Point2f> &keyPoint_current, vector<double>& disparities);
+    void featureTracking(cv::Mat &image_previous, cv::Mat &image_current, std::vector<cv::Point2f> &keyPoint_previous,
+                         std::vector<cv::Point2f> &keyPoint_current, std::vector<double>& disparities);
 
 private:
     FrameStage frameStage_;
     PinholeCamera *pcamera_;
-    Mat current_frame_;
-    Mat previous_frame_;
+    cv::Mat current_frame_;
+    cv::Mat previous_frame_;
 
-    Mat cur_R;
-    Mat cur_t;
+    cv::Mat cur_R;
+    cv::Mat cur_t;
 
-    vector<Point2f> px_current_;
-    vector<Point2f> px_previous_;
-    vector<double> disparities;
+    std::vector<cv::Point2f> px_current_;
+    std::vector<cv::Point2f> px_previous_;
+    std::vector<double> disparities;
 
     double focal;
-    Point2d pp_;
-
+    cv::Point2d pp_;
 };
 
 

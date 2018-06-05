@@ -5,21 +5,19 @@
 #include "VisualOdometry.h"
 #include <string>
 
-using namespace std;
-
 int kMinNumFeature = 2000;
 
 VisualOdometry::VisualOdometry(PinholeCamera *camera) :
         pcamera_(camera)
 {
     focal = camera->fx();
-    pp_ = Point2d(camera->cx(), camera->cy());
+    pp_ = cv::Point2d(camera->cx(), camera->cy());
     frameStage_ = FrameStage::STAGE_FIRST_FRAME;
 }
 
 VisualOdometry::~VisualOdometry() {}
 
-void VisualOdometry::addImage(const Mat &img, int frame_id)
+void VisualOdometry::addImage(const cv::Mat &img, int frame_id)
 {
     if (img.empty() || img.type() != CV_8UC1 || img.rows != pcamera_->height() || img.cols != pcamera_->width())
         throw std::runtime_error(
@@ -46,10 +44,10 @@ bool VisualOdometry::processFirstFrame()
 
 bool VisualOdometry::processSecondFrame()
 {
-    featureTracking(previous_frame_, current_frame_, px_previous_, px_current_,disparities);
-    Mat E, R, T;
-    Mat mask;
-    E = findEssentialMat(px_current_, px_previous_, focal, pp_, RANSAC, 0.999, 1.0, mask);
+    featureTracking(previous_frame_, current_frame_, px_previous_, px_current_, disparities);
+    cv::Mat E, R, T;
+    cv::Mat mask;
+    E = findEssentialMat(px_current_, px_previous_, focal, pp_, cv::RANSAC, 0.999, 1.0, mask);
     recoverPose(E, px_current_, px_previous_, R, T, focal, pp_, mask);
     cur_R = R.clone();
     cur_t = T.clone();
@@ -61,11 +59,11 @@ bool VisualOdometry::processSecondFrame()
 bool VisualOdometry::processFrame(int frame_id)
 {
     double scale = 1.00;
-    featureTracking(previous_frame_, current_frame_,px_previous_, px_current_, disparities);
-    Mat E, R, T, mask;
+    featureTracking(previous_frame_, current_frame_, px_previous_, px_current_, disparities);
+    cv::Mat E, R, T, mask;
 
-    E = findEssentialMat(px_current_, px_previous_, focal, pp_, RANSAC, 0.999, 1.0, mask);
-    recoverPose(E, px_current_, px_previous_, R, T, focal, pp_, mask);
+    E = cv::findEssentialMat(px_current_, px_previous_, focal, pp_, cv::RANSAC, 0.999, 1.0, mask);
+    cv::recoverPose(E, px_current_, px_previous_, R, T, focal, pp_, mask);
     scale = getAbsoluteScale(frame_id);
     if (scale > 0.1)
     {
@@ -83,9 +81,9 @@ bool VisualOdometry::processFrame(int frame_id)
 
 double VisualOdometry::getAbsoluteScale(int frame_id)
 {
-    string line;
+    std::string line;
     int i = 0;
-       ifstream groundTruth("/home/runisys/Desktop/data/KITTI/odometry/dataset/poses/00.txt");
+    std::ifstream groundTruth("/home/runisys/Desktop/data/KITTI/odometry/dataset/poses/00.txt");
     double x = 0, y = 0, z = 0;
     double x_pre = 0, y_pre = 0, z_pre = 0;
     if (groundTruth.is_open())
@@ -95,7 +93,7 @@ double VisualOdometry::getAbsoluteScale(int frame_id)
             z_pre = z;
             x_pre = x;
             y_pre = y;
-            istringstream in(line);
+            std::istringstream in(line);
             for (int j = 0; j < 12; j++)
             {
                 in >> z;
@@ -107,40 +105,40 @@ double VisualOdometry::getAbsoluteScale(int frame_id)
         groundTruth.close();
     } else
     {
-        cout << "Unable open file" << endl;
+        std::cout << "Unable open file" << std::endl;
     }
     return sqrt((x - x_pre) * (x - x_pre) + (y - y_pre) * (y - y_pre) + (z - z_pre) * (z - z_pre));
 }
 
-void VisualOdometry::featureDetection(Mat &image, vector<Point2f>& keypoints)
+void VisualOdometry::featureDetection(cv::Mat &image, std::vector<cv::Point2f> &keypoints)
 {
-    vector<KeyPoint> key_points;
+    std::vector<cv::KeyPoint> key_points;
     int fast_threshold = 20;
     bool non_max_suppression = true;
     FAST(image, key_points, fast_threshold, non_max_suppression);
-    KeyPoint::convert(key_points, keypoints);
+    cv::KeyPoint::convert(key_points, keypoints);
 }
 
-void VisualOdometry::featureTracking(Mat &image_previous, Mat &image_current, vector<Point2f> &keyPoint_previous,
-                                     vector<Point2f> &keyPoint_current, vector<double>& disparities)
+void VisualOdometry::featureTracking(cv::Mat &image_previous, cv::Mat &image_current, std::vector<cv::Point2f> &keyPoint_previous,
+                                     std::vector<cv::Point2f> &keyPoint_current, std::vector<double> &disparities)
 {
     const double klt_win_size = 21.0;
     const int klt_max_iter = 30;
     const double kly_eps = 0.001;
-    vector<uchar> status;
-    vector<float> error;
-    vector<float> min_eig_vec;
-    TermCriteria criteria(TermCriteria::COUNT + TermCriteria::EPS, klt_max_iter, kly_eps);
+    std::vector<uchar> status;
+    std::vector<float> error;
+    std::vector<float> min_eig_vec;
+    cv::TermCriteria criteria(cv::TermCriteria::COUNT + cv::TermCriteria::EPS, klt_max_iter, kly_eps);
     calcOpticalFlowPyrLK(previous_frame_, current_frame_,
                          px_previous_, px_current_,
                          status, error,
-                         Size2i(klt_win_size, klt_win_size),
+                         cv::Size2i(klt_win_size, klt_win_size),
                          4, criteria, 0);
     disparities.clear();
     disparities.reserve(px_current_.size());
 
-    vector<Point2f>::iterator px_prev_it = px_previous_.begin();
-    vector<Point2f>::iterator px_curr_it = px_current_.begin();
+    std::vector<cv::Point2f>::iterator px_prev_it = px_previous_.begin();
+    std::vector<cv::Point2f>::iterator px_curr_it = px_current_.begin();
     for (size_t i = 0; px_prev_it != px_previous_.end(); ++i)
     {
         if (!status[i])
@@ -149,7 +147,7 @@ void VisualOdometry::featureTracking(Mat &image_previous, Mat &image_current, ve
             px_prev_it = px_previous_.erase(px_prev_it);
             continue;
         }
-        disparities.push_back(norm(Point2d(px_prev_it->x - px_curr_it->x, px_prev_it->y - px_curr_it->y)));
+        disparities.push_back(cv::norm(cv::Point2d(px_prev_it->x - px_curr_it->x, px_prev_it->y - px_curr_it->y)));
         ++px_curr_it;
         ++px_prev_it;
     }
