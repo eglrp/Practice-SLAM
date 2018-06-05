@@ -119,7 +119,8 @@ void VisualOdometry::featureDetection(cv::Mat &image, std::vector<cv::Point2f> &
     cv::KeyPoint::convert(key_points, keypoints);
 }
 
-void VisualOdometry::featureTracking(cv::Mat &image_previous, cv::Mat &image_current, std::vector<cv::Point2f> &keyPoint_previous,
+void VisualOdometry::featureTracking(cv::Mat &image_previous, cv::Mat &image_current,
+                                     std::vector<cv::Point2f> &keyPoint_previous,
                                      std::vector<cv::Point2f> &keyPoint_current, std::vector<double> &disparities)
 {
     const double klt_win_size = 21.0;
@@ -151,4 +152,9 @@ void VisualOdometry::featureTracking(cv::Mat &image_previous, cv::Mat &image_cur
         ++px_curr_it;
         ++px_prev_it;
     }
+}
+
+void VisualOdometry::SetGroundTruthPath(std::string ground_truth_path)
+{
+    this->ground_truth_path_ = ground_truth_path;
 }

@@ -23,6 +23,8 @@ public:
 
     void addImage(const cv::Mat &img, int frame_id);
 
+    void SetGroundTruthPath(std::string ground_truth_path);
+
     cv::Mat getCurrentR() { return cur_R; }
 
     cv::Mat getCurrentT() { return cur_t; }
@@ -56,6 +58,8 @@ private:
 
     double focal;
     cv::Point2d pp_;
+
+    std::string ground_truth_path_;
 };
 
 
