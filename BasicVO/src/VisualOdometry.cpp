@@ -70,7 +70,7 @@ bool VisualOdometry::processFrame(int frame_id)
     if (scale > 0.1)
     {
         cur_t = cur_t + scale * (cur_R * T);
-        cur_R == R * cur_R;
+        cur_R = R * cur_R;
     }
     if (px_previous_.size() < kMinNumFeature)
     {
@@ -85,7 +85,7 @@ double VisualOdometry::getAbsoluteScale(int frame_id)
 {
     string line;
     int i = 0;
-    ifstream groundTruth("/home/ynzhang/data/KITTI/dataset/poses/00.txt");
+       ifstream groundTruth("/home/runisys/Desktop/data/KITTI/odometry/dataset/poses/00.txt");
     double x = 0, y = 0, z = 0;
     double x_pre = 0, y_pre = 0, z_pre = 0;
     if (groundTruth.is_open())

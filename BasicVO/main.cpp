@@ -31,7 +31,7 @@ int main()
     for (int im_id = 0; im_id < 2000; ++im_id)
     {
         stringstream ss;
-        ss << "/home/ynzhang/data/KITTI/dataset/00/image_0/" << setw(6) << setfill('0') << im_id
+        ss << "/home/runisys/Desktop/data/slamDataset/sequences/00/image_0/" << setw(6) << setfill('0') << im_id
            << ".png";
 
         Mat img = imread(ss.str().c_str(), 0);
