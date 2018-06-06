@@ -21,7 +21,7 @@ public:
 
     ~VisualOdometry();
 
-    void AddImage(const cv::Mat &image, int frame_id);
+    void AddImage(const cv::Mat &frame, int frame_id);
 
     void SetGroundTruthPath(std::string ground_truth_path);
 

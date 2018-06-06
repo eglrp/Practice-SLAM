@@ -17,12 +17,12 @@ VisualOdometry::VisualOdometry(PinholeCamera *camera) :
 
 VisualOdometry::~VisualOdometry() {}
 
-void VisualOdometry::AddImage(const cv::Mat &image, int frame_id)
+void VisualOdometry::AddImage(const cv::Mat &frame, int frame_id)
 {
-    if (image.empty() || image.type() != CV_8UC1 || image.rows != pcamera_->height() || image.cols != pcamera_->width())
+    if (frame.empty() || frame.type() != CV_8UC1 || frame.rows != pcamera_->height() || frame.cols != pcamera_->width())
         throw std::runtime_error(
-                "Frame: provide image has not the same size of camera model or image is not grayscale");
-    current_frame_ = image;
+                "Frame: provide frame has not the same size of camera model or frame is not grayscale");
+    current_frame_ = frame;
 
     bool res = true;
     if (frameStage_ == FrameStage::STAGE_DEFAULT_FRAME)
