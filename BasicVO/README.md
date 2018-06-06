@@ -14,7 +14,7 @@
 
 
 下面是原始博客代码运行的结果:
-![原始结果]()
+![原始结果](https://github.com/zhangxiaoya/Practice-SLAM/blob/master/BasicVO/images/Trajectory_2.png)
 
 修改代码错误后的结果如下：
-![修改后的结果]()
+![修改后的结果](https://github.com/zhangxiaoya/Practice-SLAM/blob/master/BasicVO/images/Trajectory_1.png)
