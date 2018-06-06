@@ -21,13 +21,13 @@ public:
 
     ~VisualOdometry();
 
-    void addImage(const cv::Mat &img, int frame_id);
+    void AddImage(const cv::Mat &image, int frame_id);
 
     void SetGroundTruthPath(std::string ground_truth_path);
 
-    cv::Mat getCurrentR() { return cur_R; }
+    cv::Mat getCurrentR() { return cur_R_; }
 
-    cv::Mat getCurrentT() { return cur_t; }
+    cv::Mat getCurrentT() { return cur_t_; }
 
 private:
     bool processFirstFrame();
@@ -38,10 +38,10 @@ private:
 
     double getAbsoluteScale(int frame_id);
 
-    void featureDetection(cv::Mat &image, std::vector<cv::Point2f>& keypoints);
+    void featureDetection(cv::Mat &image, std::vector<cv::Point2f> &keypoints);
 
     void featureTracking(cv::Mat &image_previous, cv::Mat &image_current, std::vector<cv::Point2f> &keyPoint_previous,
-                         std::vector<cv::Point2f> &keyPoint_current, std::vector<double>& disparities);
+                         std::vector<cv::Point2f> &keyPoint_current, std::vector<double> &disparities);
 
 private:
     FrameStage frameStage_;
@@ -49,14 +49,14 @@ private:
     cv::Mat current_frame_;
     cv::Mat previous_frame_;
 
-    cv::Mat cur_R;
-    cv::Mat cur_t;
+    cv::Mat cur_R_;
+    cv::Mat cur_t_;
 
     std::vector<cv::Point2f> px_current_;
     std::vector<cv::Point2f> px_previous_;
-    std::vector<double> disparities;
+    std::vector<double> disparities_;
 
-    double focal;
+    double focal_;
     cv::Point2d pp_;
 
     std::string ground_truth_path_;

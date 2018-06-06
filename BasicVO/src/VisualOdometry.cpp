@@ -10,19 +10,19 @@ int kMinNumFeature = 2000;
 VisualOdometry::VisualOdometry(PinholeCamera *camera) :
         pcamera_(camera)
 {
-    focal = camera->fx();
+    focal_ = camera->fx();
     pp_ = cv::Point2d(camera->cx(), camera->cy());
     frameStage_ = FrameStage::STAGE_FIRST_FRAME;
 }
 
 VisualOdometry::~VisualOdometry() {}
 
-void VisualOdometry::addImage(const cv::Mat &img, int frame_id)
+void VisualOdometry::AddImage(const cv::Mat &image, int frame_id)
 {
-    if (img.empty() || img.type() != CV_8UC1 || img.rows != pcamera_->height() || img.cols != pcamera_->width())
+    if (image.empty() || image.type() != CV_8UC1 || image.rows != pcamera_->height() || image.cols != pcamera_->width())
         throw std::runtime_error(
                 "Frame: provide image has not the same size of camera model or image is not grayscale");
-    current_frame_ = img;
+    current_frame_ = image;
 
     bool res = true;
     if (frameStage_ == FrameStage::STAGE_DEFAULT_FRAME)
@@ -44,13 +44,13 @@ bool VisualOdometry::processFirstFrame()
 
 bool VisualOdometry::processSecondFrame()
 {
-    featureTracking(previous_frame_, current_frame_, px_previous_, px_current_, disparities);
+    featureTracking(previous_frame_, current_frame_, px_previous_, px_current_, disparities_);
     cv::Mat E, R, T;
     cv::Mat mask;
-    E = findEssentialMat(px_current_, px_previous_, focal, pp_, cv::RANSAC, 0.999, 1.0, mask);
-    recoverPose(E, px_current_, px_previous_, R, T, focal, pp_, mask);
-    cur_R = R.clone();
-    cur_t = T.clone();
+    E = findEssentialMat(px_current_, px_previous_, focal_, pp_, cv::RANSAC, 0.999, 1.0, mask);
+    recoverPose(E, px_current_, px_previous_, R, T, focal_, pp_, mask);
+    cur_R_ = R.clone();
+    cur_t_ = T.clone();
     frameStage_ = FrameStage::STAGE_DEFAULT_FRAME;
     px_previous_ = px_current_;
     return true;
@@ -59,21 +59,21 @@ bool VisualOdometry::processSecondFrame()
 bool VisualOdometry::processFrame(int frame_id)
 {
     double scale = 1.00;
-    featureTracking(previous_frame_, current_frame_, px_previous_, px_current_, disparities);
+    featureTracking(previous_frame_, current_frame_, px_previous_, px_current_, disparities_);
     cv::Mat E, R, T, mask;
 
-    E = cv::findEssentialMat(px_current_, px_previous_, focal, pp_, cv::RANSAC, 0.999, 1.0, mask);
-    cv::recoverPose(E, px_current_, px_previous_, R, T, focal, pp_, mask);
+    E = cv::findEssentialMat(px_current_, px_previous_, focal_, pp_, cv::RANSAC, 0.999, 1.0, mask);
+    cv::recoverPose(E, px_current_, px_previous_, R, T, focal_, pp_, mask);
     scale = getAbsoluteScale(frame_id);
     if (scale > 0.1)
     {
-        cur_t = cur_t + scale * (cur_R * T);
-        cur_R = R * cur_R;
+        cur_t_ = cur_t_ + scale * (cur_R_ * T);
+        cur_R_ = R * cur_R_;
     }
     if (px_previous_.size() < kMinNumFeature)
     {
         featureDetection(current_frame_, px_previous_);
-        featureTracking(previous_frame_, current_frame_, px_previous_, px_current_, disparities);
+        featureTracking(previous_frame_, current_frame_, px_previous_, px_current_, disparities_);
     }
     px_previous_ = px_current_;
     return true;
@@ -83,7 +83,7 @@ double VisualOdometry::getAbsoluteScale(int frame_id)
 {
     std::string line;
     int i = 0;
-    std::ifstream groundTruth("/home/runisys/Desktop/data/KITTI/odometry/dataset/poses/00.txt");
+    std::ifstream groundTruth(this->ground_truth_path_);
     double x = 0, y = 0, z = 0;
     double x_pre = 0, y_pre = 0, z_pre = 0;
     if (groundTruth.is_open())

@@ -1,9 +1,9 @@
 #include "../include/PinholeCamera.h"
 
-PinholeCamera::PinholeCamera(int width, int height, double fx, double fy, double cx, double cy,
+PinholeCamera::PinholeCamera(int frame_width, int height, double fx, double fy, double cx, double cy,
                              double k1,
                              double k2, double p1, double p2, double k3) :
-        width_(width),
+        width_(frame_width),
         height_(height),
         fx_(fx),
         fy_(fy),

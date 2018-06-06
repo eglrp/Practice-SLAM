@@ -17,35 +17,52 @@ int main()
     const char *trajectory_viewer_name = "Trajectory";
 
     const char *image_list_folder = "/home/runisys/Desktop/data/slamDataset/sequences/00/image_0/";
+    const char *ground_truth_path = "/home/runisys/Desktop/data/KITTI/odometry/dataset/poses/00.txt";
 
     char text[200];
 
+    // 针孔相机对象
+    int frame_width = 1241;
+    int frame_height = 376;
+    double fx = 718.8560;
+    double fy = 718.8560;
+    double cx = 607.1928;
+    double cy = 185.2157;
 
-    PinholeCamera *pcamera = new PinholeCamera(1241, 376, 718.8560, 718.8560, 607.1928, 185.2157);
-    VisualOdometry vo(pcamera);
+    PinholeCamera camera(frame_width, frame_height, fx, fy, cx, cy);
 
+    // VO对象
+    VisualOdometry vo(&camera);
+    vo.SetGroundTruthPath(ground_truth_path);
+
+    // 设置输出坐标文件
     std::fstream out(position_file_name);
+
+    // 定义显示轨迹的参数
     int font_face = cv::FONT_HERSHEY_PLAIN;
     double font_scale = 1;
     int thickness = 1;
     cv::Point text_org(10, 50);
 
+    // 定义显示帧窗口和显示轨迹窗口
     cv::namedWindow(frame_viewer_name, cv::WINDOW_AUTOSIZE);
     cv::namedWindow(trajectory_viewer_name, cv::WINDOW_AUTOSIZE);
-    
+    // 定义显示轨迹的视图
     cv::Mat traj = cv::Mat::zeros(600, 600, CV_8UC3);
 
     double x = 0, y = 0, z = 0;
-    for (int im_id = 0; im_id < 2000; ++im_id)
+    int image_id = 0;
+
+    while (true)
     {
         std::stringstream ss;
-        ss << image_list_folder << std::setw(6) << std::setfill('0') << im_id
-           << ".png";
+        ss << image_list_folder << std::setw(6) << std::setfill('0') << image_id << ".png";
 
         cv::Mat img = cv::imread(ss.str().c_str(), 0);
-        assert(!img.empty());
+        if(img.empty())
+            break;
 
-        vo.addImage(img, im_id);
+        vo.AddImage(img, image_id);
         cv::Mat cur_t = vo.getCurrentT();
         if (cur_t.rows != 0)
         {
@@ -57,7 +74,7 @@ int main()
 
         int draw_x = int(x) + 300;
         int draw_y = int(z) + 100;
-        cv::circle(traj, cv::Point(draw_x, draw_y), 1, CV_RGB(255, 0, 0), 2);
+        cv::circle(traj, cv::Point(draw_x, draw_y), 1, CV_RGB(255, 255, 0), 2);
 
         cv::rectangle(traj, cv::Point(10, 30), cv::Point(580, 60), CV_RGB(0, 0, 0), CV_FILLED);
         sprintf(text, "Coordinates: x = %02fm y = %02fm z = %02fm", x, y, z);
@@ -67,8 +84,8 @@ int main()
         cv::imshow(trajectory_viewer_name, traj);
 
         cv::waitKey(1);
+        image_id++;
     }
-    delete pcamera;
     out.close();
 
     return 0;
