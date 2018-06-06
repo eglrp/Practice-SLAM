@@ -7,37 +7,58 @@
 
 int kMinNumFeature = 2000;
 
+#define ERROR_FIXED
+
 VisualOdometry::VisualOdometry(PinholeCamera *camera) :
-        pcamera_(camera)
+        pcamera_(camera),
+        x_pre_(0.0),
+        y_pre_(0.0),
+        z_pre_(0.0)
 {
     focal_ = camera->fx();
     pp_ = cv::Point2d(camera->cx(), camera->cy());
     frameStage_ = FrameStage::STAGE_FIRST_FRAME;
 }
 
-VisualOdometry::~VisualOdometry() {}
+VisualOdometry::~VisualOdometry()
+{
+    if (this->ground_truth_stream_.is_open())
+        this->ground_truth_stream_.close();
+}
 
-void VisualOdometry::AddImage(const cv::Mat &frame, int frame_id)
+bool VisualOdometry::AddImage(const cv::Mat &frame)
 {
     if (frame.empty() || frame.type() != CV_8UC1 || frame.rows != pcamera_->height() || frame.cols != pcamera_->width())
         throw std::runtime_error(
                 "Frame: provide frame has not the same size of camera model or frame is not grayscale");
     current_frame_ = frame;
 
-    bool res = true;
-    if (frameStage_ == FrameStage::STAGE_DEFAULT_FRAME)
-        res = processFrame(frame_id);
-    else if (frameStage_ == FrameStage::STAGE_FIRST_FRAME)
-        res = processFirstFrame();
-    else if (frameStage_ == FrameStage::STAGE_SECOND_FRAME)
-        res = processSecondFrame();
-
+    bool res;
+    switch (frameStage_)
+    {
+        case STAGE_DEFAULT_FRAME:
+            res = processFrame();
+            break;
+        case STAGE_FIRST_FRAME:
+            res = processFirstFrame();
+            break;
+        case STAGE_SECOND_FRAME :
+            res = processSecondFrame();
+            break;
+        default:
+            res = false;
+            break;
+    }
     previous_frame_ = current_frame_;
+    return res;
 }
 
 bool VisualOdometry::processFirstFrame()
 {
     featureDetection(current_frame_, px_previous_);
+
+    GetGroundTruth();
+
     frameStage_ = FrameStage::STAGE_SECOND_FRAME;
     return true;
 }
@@ -45,6 +66,7 @@ bool VisualOdometry::processFirstFrame()
 bool VisualOdometry::processSecondFrame()
 {
     featureTracking(previous_frame_, current_frame_, px_previous_, px_current_, disparities_);
+
     cv::Mat E, R, T;
     cv::Mat mask;
     E = findEssentialMat(px_current_, px_previous_, focal_, pp_, cv::RANSAC, 0.999, 1.0, mask);
@@ -53,18 +75,20 @@ bool VisualOdometry::processSecondFrame()
     cur_t_ = T.clone();
     frameStage_ = FrameStage::STAGE_DEFAULT_FRAME;
     px_previous_ = px_current_;
+
+    GetGroundTruth();
     return true;
 }
 
-bool VisualOdometry::processFrame(int frame_id)
+bool VisualOdometry::processFrame()
 {
-    double scale = 1.00;
+    double scale;
     featureTracking(previous_frame_, current_frame_, px_previous_, px_current_, disparities_);
     cv::Mat E, R, T, mask;
 
     E = cv::findEssentialMat(px_current_, px_previous_, focal_, pp_, cv::RANSAC, 0.999, 1.0, mask);
     cv::recoverPose(E, px_current_, px_previous_, R, T, focal_, pp_, mask);
-    scale = getAbsoluteScale(frame_id);
+    scale = getAbsoluteScale();
     if (scale > 0.1)
     {
         cur_t_ = cur_t_ + scale * (cur_R_ * T);
@@ -75,47 +99,54 @@ bool VisualOdometry::processFrame(int frame_id)
         featureDetection(current_frame_, px_previous_);
         featureTracking(previous_frame_, current_frame_, px_previous_, px_current_, disparities_);
     }
-    px_previous_ = px_current_;
+#ifdef ERROR_FIXED
+    else
+    {
+#endif
+        px_previous_ = px_current_;
+#ifdef ERROR_FIXED
+    }
+#endif
     return true;
 }
 
-double VisualOdometry::getAbsoluteScale(int frame_id)
+void VisualOdometry::GetGroundTruth()
 {
     std::string line;
-    int i = 0;
-    std::ifstream groundTruth(this->ground_truth_path_);
-    double x = 0, y = 0, z = 0;
-    double x_pre = 0, y_pre = 0, z_pre = 0;
-    if (groundTruth.is_open())
-    {
-        while ((std::getline(groundTruth, line)) && (i <= frame_id))
-        {
-            z_pre = z;
-            x_pre = x;
-            y_pre = y;
-            std::istringstream in(line);
-            for (int j = 0; j < 12; j++)
-            {
-                in >> z;
-                if (j == 7) y = z;
-                if (j == 3) x = z;
-            }
-            i++;
-        }
-        groundTruth.close();
-    } else
-    {
-        std::cout << "Unable open file" << std::endl;
-    }
-    return sqrt((x - x_pre) * (x - x_pre) + (y - y_pre) * (y - y_pre) + (z - z_pre) * (z - z_pre));
+    getline(ground_truth_stream_, line);
+    std::stringstream ss;
+    ss << line;
+    double r1, r2, r3, r4, r5, r6, r7, r8, r9;
+    ss >> r1 >> r2 >> r3 >> x_pre_ >> r4 >> r5 >> r6 >> y_pre_ >> r7 >> r8 >> r9 >> z_pre_;
 }
 
-void VisualOdometry::featureDetection(cv::Mat &image, std::vector<cv::Point2f> &keypoints)
+double VisualOdometry::getAbsoluteScale()
+{
+    std::string line;
+
+    if (std::getline(this->ground_truth_stream_, line))
+    {
+        double r1, r2, r3, r4, r5, r6, r7, r8, r9;
+        double x = 0, y = 0, z = 0;
+        std::istringstream in(line);
+        in >> r1 >> r2 >> r3 >> x >> r4 >> r5 >> r6 >> y >> r7 >> r8 >> r9 >> z;
+        double scale = sqrt((x - x_pre_) * (x - x_pre_) + (y - y_pre_) * (y - y_pre_) + (z - z_pre_) * (z - z_pre_));
+        x_pre_ = x;
+        y_pre_ = y;
+        z_pre_ = z;
+        return scale;
+    } else
+    {
+        return 0;
+    }
+}
+
+void VisualOdometry::featureDetection(cv::Mat &frame, std::vector<cv::Point2f> &keypoints)
 {
     std::vector<cv::KeyPoint> key_points;
     int fast_threshold = 20;
     bool non_max_suppression = true;
-    FAST(image, key_points, fast_threshold, non_max_suppression);
+    FAST(frame, key_points, fast_threshold, non_max_suppression);
     cv::KeyPoint::convert(key_points, keypoints);
 }
 
@@ -126,6 +157,7 @@ void VisualOdometry::featureTracking(cv::Mat &image_previous, cv::Mat &image_cur
     const double klt_win_size = 21.0;
     const int klt_max_iter = 30;
     const double kly_eps = 0.001;
+
     std::vector<uchar> status;
     std::vector<float> error;
     std::vector<float> min_eig_vec;
@@ -154,7 +186,15 @@ void VisualOdometry::featureTracking(cv::Mat &image_previous, cv::Mat &image_cur
     }
 }
 
-void VisualOdometry::SetGroundTruthPath(std::string ground_truth_path)
+bool VisualOdometry::SetGroundTruth(std::string ground_truth_path)
 {
     this->ground_truth_path_ = ground_truth_path;
+    this->ground_truth_stream_.open(this->ground_truth_path_);
+    if (!this->ground_truth_stream_.is_open())
+    {
+        return false;
+    } else
+    {
+        return true;
+    }
 }

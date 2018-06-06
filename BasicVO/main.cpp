@@ -33,10 +33,14 @@ int main()
 
     // VO对象
     VisualOdometry vo(&camera);
-    vo.SetGroundTruthPath(ground_truth_path);
+    if(!vo.SetGroundTruth(ground_truth_path))
+    {
+        std::cout <<"Unable open ground truth file!" <<std::endl;
+        return 1;
+    }
 
     // 设置输出坐标文件
-    std::fstream out(position_file_name);
+    std::fstream out(position_file_name, std::ios::out);
 
     // 定义显示轨迹的参数
     int font_face = cv::FONT_HERSHEY_PLAIN;
@@ -62,7 +66,11 @@ int main()
         if(img.empty())
             break;
 
-        vo.AddImage(img, image_id);
+        if(!vo.AddImage(img))
+        {
+            std::cout << "Vo failed!" << std::endl;
+            return 2;
+        }
         cv::Mat cur_t = vo.getCurrentT();
         if (cur_t.rows != 0)
         {

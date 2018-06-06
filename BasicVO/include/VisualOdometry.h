@@ -21,9 +21,9 @@ public:
 
     ~VisualOdometry();
 
-    void AddImage(const cv::Mat &frame, int frame_id);
+    bool AddImage(const cv::Mat &frame);
 
-    void SetGroundTruthPath(std::string ground_truth_path);
+    bool SetGroundTruth(std::string ground_truth_path);
 
     cv::Mat getCurrentR() { return cur_R_; }
 
@@ -34,11 +34,13 @@ private:
 
     bool processSecondFrame();
 
-    bool processFrame(int frame_id);
+    bool processFrame();
 
-    double getAbsoluteScale(int frame_id);
+    double getAbsoluteScale();
 
-    void featureDetection(cv::Mat &image, std::vector<cv::Point2f> &keypoints);
+    void GetGroundTruth();
+
+    void featureDetection(cv::Mat &frame, std::vector<cv::Point2f> &keypoints);
 
     void featureTracking(cv::Mat &image_previous, cv::Mat &image_current, std::vector<cv::Point2f> &keyPoint_previous,
                          std::vector<cv::Point2f> &keyPoint_current, std::vector<double> &disparities);
@@ -60,6 +62,12 @@ private:
     cv::Point2d pp_;
 
     std::string ground_truth_path_;
+    std::ifstream ground_truth_stream_;
+
+    double x_pre_;
+    double y_pre_;
+    double z_pre_;
+
 };
 
 
